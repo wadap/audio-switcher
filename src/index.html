@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Switcher</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-tertiary: #1a1a1a;
+      --border: #2a2a2a;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --text-muted: #555555;
+      --accent: #ff6b35;
+      --accent-dim: #ff6b3520;
+      --success: #4ade80;
+      --radius: 8px;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 12px;
+      overflow: hidden;
+    }
+    
+    .container {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Title Bar */
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+    }
+    
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    
+    .title-icon {
+      width: 16px;
+      height: 16px;
+      fill: var(--accent);
+    }
+    
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+    
+    .window-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    
+    .window-btn:hover {
+      opacity: 0.8;
+    }
+    
+    .btn-minimize {
+      background: var(--text-muted);
+    }
+    
+    .btn-close {
+      background: #ff5f57;
+    }
+    
+    /* Device List */
+    .device-list {
+      padding: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    
+    .device-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    .device-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .device-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+    
+    .device-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+    
+    .device-item:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    .device-item.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+    
+    .device-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    
+    .device-item.active .device-indicator {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+    
+    .device-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .device-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .device-item.active .device-name {
+      color: var(--accent);
+    }
+    
+    .device-type {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    .hotkey-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .hotkey-badge {
+      padding: 2px 6px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+    }
+    
+    .refresh-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .refresh-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    .refresh-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    /* Loading State */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+      gap: 12px;
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Error State */
+    .error {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    
+    .error-title {
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .error-message {
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    
+    .error-action {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .error-action:hover {
+      background: var(--border);
+    }
+    
+    /* Empty State */
+    .empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .empty-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    
+    /* Transition effect on device switch */
+    .device-item.switching {
+      animation: pulse 0.3s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(0.98); }
+    }
+
+    /* Settings View */
+    .settings-view {
+      display: none;
+    }
+
+    .settings-view.active {
+      display: block;
+    }
+
+    .device-list.hidden {
+      display: none;
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-tertiary);
+    }
+
+    .settings-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .settings-done {
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .settings-done:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .settings-list {
+      padding: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .settings-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .settings-checkbox {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .settings-item.enabled .settings-checkbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .settings-checkbox svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--bg-primary);
+      stroke-width: 3;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .settings-item.enabled .settings-checkbox svg {
+      opacity: 1;
+    }
+
+    .settings-device-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .settings-device-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .settings-device-detail {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .status-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .settings-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Settings Options */
+    .settings-options {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .settings-option-label {
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+
+    .toggle-switch {
+      width: 36px;
+      height: 20px;
+      background: var(--border);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+      background: var(--accent);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(16px);
+    }
+
+    .settings-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 12px 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">
+      <div class="title">
+        <svg class="title-icon" viewBox="0 0 24 24">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        <span>Audio Out</span>
+      </div>
+      <div class="window-controls">
+        <button class="window-btn btn-minimize" id="minimizeBtn" title="Minimize to tray"></button>
+        <button class="window-btn btn-close" id="closeBtn" title="Close"></button>
+      </div>
+    </div>
+    
+    <div class="device-list" id="deviceList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Scanning devices...</span>
+      </div>
+    </div>
+
+    <div class="settings-view" id="settingsView">
+      <div class="settings-header">
+        <span class="settings-title">Settings</span>
+        <button class="settings-done" id="settingsDoneBtn">Done</button>
+      </div>
+      <div class="settings-options">
+        <div class="settings-option">
+          <span class="settings-option-label">つねに一番前に表示</span>
+          <div class="toggle-switch" id="alwaysOnTopToggle"></div>
+        </div>
+      </div>
+      <div class="settings-section-title">Devices</div>
+      <div class="settings-list" id="settingsList"></div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="hotkey-hint">
+        <span>Toggle:</span>
+        <span class="hotkey-badge" id="hotkeyDisplay">Alt+A</span>
+      </div>
+      <div class="status-buttons">
+        <button class="settings-btn" id="settingsBtn" title="Select devices">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96a7.09 7.09 0 00-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 00-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/>
+          </svg>
+        </button>
+        <button class="refresh-btn" id="refreshBtn" title="Refresh devices">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const deviceList = document.getElementById('deviceList');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const minimizeBtn = document.getElementById('minimizeBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const hotkeyDisplay = document.getElementById('hotkeyDisplay');
+    const settingsView = document.getElementById('settingsView');
+    const settingsList = document.getElementById('settingsList');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsDoneBtn = document.getElementById('settingsDoneBtn');
+    const alwaysOnTopToggle = document.getElementById('alwaysOnTopToggle');
+
+    let devices = [];
+    let allDevices = []; // All devices including disabled ones
+    let enabledDevices = null; // null = all enabled, array = specific IDs
+    let alwaysOnTop = true;
+    
+    // Load devices
+    async function loadDevices() {
+      deviceList.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Scanning devices...</span>
+        </div>
+      `;
+
+      try {
+        const [result, savedEnabledDevices] = await Promise.all([
+          ipcRenderer.invoke('get-audio-devices'),
+          ipcRenderer.invoke('get-enabled-devices')
+        ]);
+
+        if (result.error) {
+          showError(result.error);
+          return;
+        }
+
+        allDevices = result.devices;
+        enabledDevices = savedEnabledDevices;
+
+        // Filter devices based on enabled list
+        if (enabledDevices === null) {
+          devices = allDevices;
+        } else {
+          devices = allDevices.filter(d => enabledDevices.includes(d.id));
+        }
+
+        renderDevices();
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+    
+    function showError(message) {
+      const isModuleError = message.includes('AudioDeviceCmdlets');
+
+      deviceList.innerHTML = `
+        <div class="error">
+          <div class="error-title">⚠ Setup Required</div>
+          <div class="error-message">
+            ${isModuleError
+              ? 'AudioDeviceCmdlets module not found.<br>Run this in PowerShell as Admin:<br><br><code>Install-Module -Name AudioDeviceCmdlets</code>'
+              : message
+            }
+          </div>
+          <button class="error-action" onclick="loadDevices()">Retry</button>
+        </div>
+      `;
+      resizeWindowToFit(2); // Compact size for error state
+    }
+    
+    function renderDevices() {
+      if (devices.length === 0) {
+        deviceList.innerHTML = `
+          <div class="empty">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              <path d="M16.5 12A4.5 4.5 0 0014 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 003.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            </svg>
+            <div>No audio devices found</div>
+          </div>
+        `;
+        resizeWindowToFit(2); // Compact size for empty state
+        return;
+      }
+      
+      deviceList.innerHTML = devices.map((device, index) => {
+        const parsed = parseDeviceName(device.name);
+        return `
+        <div class="device-item ${device.isDefault ? 'active' : ''}"
+             data-id="${device.id}"
+             data-index="${index}">
+          <div class="device-indicator"></div>
+          <div class="device-info">
+            <div class="device-name">${escapeHtml(parsed.type)}</div>
+            <div class="device-type">${escapeHtml(parsed.hardware) || 'Playback Device'}</div>
+          </div>
+        </div>
+      `;
+      }).join('');
+      
+      // Add click handlers
+      document.querySelectorAll('.device-item').forEach(item => {
+        item.addEventListener('click', () => switchDevice(item.dataset.id, item.dataset.index));
+      });
+
+      // Resize window to fit devices
+      resizeWindowToFit(devices.length);
+    }
+
+    function resizeWindowToFit(deviceCount) {
+      // Height calculation:
+      // Title bar: ~45px, Status bar: ~38px, Device list padding: 16px
+      // Each device item: ~54px
+      const baseHeight = 99;
+      const itemHeight = 54;
+      const minHeight = 150;
+      const maxHeight = 600;
+
+      let height = baseHeight + (deviceCount * itemHeight);
+      height = Math.max(minHeight, Math.min(maxHeight, height));
+
+      ipcRenderer.send('resize-window', height);
+    }
+
+    function parseDeviceName(name) {
+      // Extract device type and hardware name
+      // Example: "Speakers (Realtek High Definition Audio)" -> { type: "Speakers", hardware: "Realtek High Definition Audio" }
+      const match = name.match(/^(.+?)\s*\((.+)\)\s*$/);
+
+      if (match) {
+        const type = match[1].trim();
+        let hardware = match[2].trim()
+          .replace(/High Definition Audio$/i, '')
+          .replace(/Audio$/i, '')
+          .trim();
+        return { type, hardware: hardware || match[2].trim() };
+      }
+
+      // No parentheses found, use the whole name as type
+      return {
+        type: name.replace(/High Definition Audio Device/gi, '').replace(/Audio Device/gi, '').trim(),
+        hardware: ''
+      };
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    async function switchDevice(deviceId, index) {
+      const items = document.querySelectorAll('.device-item');
+      const targetItem = items[index];
+      
+      if (targetItem.classList.contains('active')) return;
+      
+      // Add switching animation
+      targetItem.classList.add('switching');
+      
+      try {
+        const result = await ipcRenderer.invoke('set-audio-device', deviceId);
+        
+        if (result.success) {
+          // Update UI
+          items.forEach(item => item.classList.remove('active'));
+          targetItem.classList.add('active');
+          
+          // Update devices array
+          devices.forEach(d => d.isDefault = false);
+          devices[index].isDefault = true;
+        }
+      } catch (error) {
+        console.error('Failed to switch device:', error);
+      }
+      
+      setTimeout(() => targetItem.classList.remove('switching'), 300);
+    }
+    
+    // Load settings
+    async function loadSettings() {
+      const settings = await ipcRenderer.invoke('get-settings');
+      hotkeyDisplay.textContent = settings.hotkey;
+      alwaysOnTop = settings.alwaysOnTop;
+    }
+
+    // Settings view functions
+    async function openSettings() {
+      // Refresh settings state
+      const settings = await ipcRenderer.invoke('get-settings');
+      alwaysOnTop = settings.alwaysOnTop;
+      updateAlwaysOnTopToggle();
+
+      deviceList.classList.add('hidden');
+      settingsView.classList.add('active');
+      renderSettings();
+    }
+
+    function updateAlwaysOnTopToggle() {
+      if (alwaysOnTop) {
+        alwaysOnTopToggle.classList.add('active');
+      } else {
+        alwaysOnTopToggle.classList.remove('active');
+      }
+    }
+
+    async function toggleAlwaysOnTop() {
+      alwaysOnTop = !alwaysOnTop;
+      await ipcRenderer.invoke('set-setting', 'alwaysOnTop', alwaysOnTop);
+      updateAlwaysOnTopToggle();
+    }
+
+    function closeSettings() {
+      settingsView.classList.remove('active');
+      deviceList.classList.remove('hidden');
+      loadDevices();
+    }
+
+    function renderSettings() {
+      settingsList.innerHTML = allDevices.map(device => {
+        const parsed = parseDeviceName(device.name);
+        const isEnabled = enabledDevices === null || enabledDevices.includes(device.id);
+        return `
+        <div class="settings-item ${isEnabled ? 'enabled' : ''}" data-id="${device.id}">
+          <div class="settings-checkbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="settings-device-info">
+            <div class="settings-device-name">${escapeHtml(parsed.type)}</div>
+            <div class="settings-device-detail">${escapeHtml(parsed.hardware) || 'Playback Device'}</div>
+          </div>
+        </div>
+        `;
+      }).join('');
+
+      // Add click handlers
+      document.querySelectorAll('.settings-item').forEach(item => {
+        item.addEventListener('click', () => toggleDevice(item.dataset.id));
+      });
+
+      // Resize for settings view (add extra for options section)
+      resizeWindowToFit(allDevices.length + 2); // +2 for header and options
+    }
+
+    async function toggleDevice(deviceId) {
+      // Initialize enabledDevices if null
+      if (enabledDevices === null) {
+        enabledDevices = allDevices.map(d => d.id);
+      }
+
+      const index = enabledDevices.indexOf(deviceId);
+      if (index > -1) {
+        // Don't allow disabling all devices
+        if (enabledDevices.length > 1) {
+          enabledDevices.splice(index, 1);
+        }
+      } else {
+        enabledDevices.push(deviceId);
+      }
+
+      // Save to store
+      await ipcRenderer.invoke('set-enabled-devices', enabledDevices);
+
+      // Update UI
+      renderSettings();
+    }
+
+    // Event listeners
+    refreshBtn.addEventListener('click', loadDevices);
+
+    minimizeBtn.addEventListener('click', () => {
+      ipcRenderer.send('close-window');
+    });
+
+    closeBtn.addEventListener('click', () => {
+      ipcRenderer.send('close-window');
+    });
+
+    settingsBtn.addEventListener('click', openSettings);
+    settingsDoneBtn.addEventListener('click', closeSettings);
+    alwaysOnTopToggle.addEventListener('click', toggleAlwaysOnTop);
+
+    // Initialize
+    loadDevices();
+    loadSettings();
+
+    // Auto-refresh when window becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !settingsView.classList.contains('active')) {
+        loadDevices();
+      }
+    });
+  </script>
+</body>
+</html>
