@@ -617,6 +617,17 @@
         if (enabledDevices === null) {
           devices = allDevices;
         } else {
+          // Add newly detected devices to enabledDevices automatically
+          const allDeviceIds = allDevices.map(d => d.id);
+          const newDeviceIds = allDeviceIds.filter(id => !enabledDevices.includes(id));
+          if (newDeviceIds.length > 0) {
+            enabledDevices = enabledDevices.concat(newDeviceIds);
+          }
+          // Remove stale device IDs that no longer exist
+          enabledDevices = enabledDevices.filter(id => allDeviceIds.includes(id));
+          // Save the cleaned-up list
+          await ipcRenderer.invoke('set-enabled-devices', enabledDevices);
+
           devices = allDevices.filter(d => enabledDevices.includes(d.id));
         }
 
