@@ -600,9 +600,10 @@
       `;
 
       try {
-        const [result, savedEnabledDevices] = await Promise.all([
+        const [result, savedEnabledDevices, knownDevices] = await Promise.all([
           ipcRenderer.invoke('get-audio-devices'),
-          ipcRenderer.invoke('get-enabled-devices')
+          ipcRenderer.invoke('get-enabled-devices'),
+          ipcRenderer.invoke('get-known-devices')
         ]);
 
         if (result.error) {
@@ -612,14 +613,20 @@
 
         allDevices = result.devices;
         enabledDevices = savedEnabledDevices;
+        const allDeviceIds = allDevices.map(d => d.id);
+
+        // Update known devices list
+        const updatedKnownDevices = [...new Set([...knownDevices, ...allDeviceIds])];
+        if (updatedKnownDevices.length !== knownDevices.length) {
+          await ipcRenderer.invoke('set-known-devices', updatedKnownDevices);
+        }
 
         // Filter devices based on enabled list
         if (enabledDevices === null) {
           devices = allDevices;
         } else {
-          // Add newly detected devices to enabledDevices automatically
-          const allDeviceIds = allDevices.map(d => d.id);
-          const newDeviceIds = allDeviceIds.filter(id => !enabledDevices.includes(id));
+          // Only auto-add truly new devices (never seen before)
+          const newDeviceIds = allDeviceIds.filter(id => !knownDevices.includes(id));
           if (newDeviceIds.length > 0) {
             enabledDevices = enabledDevices.concat(newDeviceIds);
           }
@@ -656,6 +663,13 @@
     }
     
     function renderDevices() {
+      // Sort devices alphabetically by display name
+      devices.sort((a, b) => {
+        const nameA = parseDeviceName(a.name).type.toLowerCase();
+        const nameB = parseDeviceName(b.name).type.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
       if (devices.length === 0) {
         deviceList.innerHTML = `
           <div class="empty">
@@ -832,9 +846,11 @@
     }
 
     async function toggleDevice(deviceId) {
-      // Initialize enabledDevices if null
+      // Initialize enabledDevices if null (first time toggling)
       if (enabledDevices === null) {
         enabledDevices = allDevices.map(d => d.id);
+        // Mark all current devices as known
+        await ipcRenderer.invoke('set-known-devices', [...enabledDevices]);
       }
 
       const index = enabledDevices.indexOf(deviceId);

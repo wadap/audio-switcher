@@ -10,7 +10,8 @@ const store = new Store({
     hotkey: 'Alt+A',
     windowPosition: null,
     autoLaunch: false,
-    enabledDevices: null // null = all devices enabled, array = specific device IDs
+    enabledDevices: null, // null = all devices enabled, array = specific device IDs
+    knownDevices: [] // all device IDs ever seen, used to detect truly new devices
   }
 });
 
@@ -261,6 +262,15 @@ ipcMain.handle('get-enabled-devices', () => {
 
 ipcMain.handle('set-enabled-devices', (event, deviceIds) => {
   store.set('enabledDevices', deviceIds);
+  return true;
+});
+
+ipcMain.handle('get-known-devices', () => {
+  return store.get('knownDevices');
+});
+
+ipcMain.handle('set-known-devices', (event, deviceIds) => {
+  store.set('knownDevices', deviceIds);
   return true;
 });
 
