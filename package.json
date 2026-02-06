@@ -24,8 +24,7 @@
     "appId": "com.shuichi.audio-switcher",
     "productName": "Audio Switcher",
     "win": {
-      "target": ["portable", "nsis"],
-      "icon": "assets/icon.ico"
+      "target": ["portable", "nsis"]
     },
     "nsis": {
       "oneClick": false,
