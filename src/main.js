@@ -278,12 +278,7 @@ ipcMain.handle('set-known-devices', (event, deviceIds) => {
 });
 
 ipcMain.on('resize-window', (event, width, height) => {
-  // setSize does not work on resizable:false + transparent windows on Windows.
-  // Use setBounds with setResizable workaround.
-  const bounds = mainWindow.getBounds();
-  mainWindow.setResizable(true);
-  mainWindow.setBounds({ x: bounds.x, y: bounds.y, width, height });
-  mainWindow.setResizable(false);
+  mainWindow.setSize(width, height);
 });
 
 ipcMain.handle('get-layout', () => {
