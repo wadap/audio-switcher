@@ -511,9 +511,172 @@
       letter-spacing: 0.5px;
       padding: 12px 12px 8px;
     }
+
+    /* Device Icon (used in horizontal layout) */
+    .device-icon-svg {
+      display: none;
+      width: 22px;
+      height: 22px;
+      fill: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .device-item.active .device-icon-svg {
+      fill: var(--accent);
+    }
+
+    /* Custom Tooltip (fixed position, managed by JS) */
+    .device-tooltip {
+      display: none;
+      position: fixed;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      white-space: nowrap;
+      z-index: 10000;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .device-tooltip::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-bottom-color: var(--border);
+    }
+
+    .device-tooltip-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .device-tooltip-detail {
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ===== Horizontal Layout ===== */
+    .container.horizontal .title-bar {
+      padding: 6px 10px;
+    }
+
+    .container.horizontal .title {
+      font-size: 10px;
+      gap: 5px;
+    }
+
+    .container.horizontal .title-icon {
+      width: 13px;
+      height: 13px;
+    }
+
+    .container.horizontal .title span {
+      display: none;
+    }
+
+    .container.horizontal .window-controls {
+      gap: 6px;
+    }
+
+    .container.horizontal .window-btn {
+      width: 10px;
+      height: 10px;
+    }
+
+    .container.horizontal .device-list {
+      display: flex;
+      flex-direction: row;
+      padding: 4px;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: 2px;
+    }
+
+    .container.horizontal .device-list::-webkit-scrollbar {
+      height: 3px;
+      width: auto;
+    }
+
+    .container.horizontal .device-item {
+      flex-shrink: 0;
+      justify-content: center;
+      gap: 0;
+      padding: 8px 12px;
+      text-align: center;
+      min-width: 0;
+      border-radius: 6px;
+      position: relative;
+    }
+
+    .container.horizontal .device-indicator {
+      display: none;
+    }
+
+    .container.horizontal .device-icon-svg {
+      display: block;
+    }
+
+    .container.horizontal .device-info {
+      display: none;
+    }
+
+    .container.horizontal .status-bar {
+      padding: 5px 10px;
+      font-size: 9px;
+    }
+
+    .container.horizontal .hotkey-hint {
+      display: none;
+    }
+
+    .container.horizontal .settings-btn svg,
+    .container.horizontal .refresh-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Layout toggle button */
+    .layout-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layout-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .layout-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .container.horizontal .layout-btn svg {
+      width: 12px;
+      height: 12px;
+    }
   </style>
 </head>
 <body>
+  <div class="device-tooltip" id="deviceTooltip">
+    <div class="device-tooltip-name" id="tooltipName"></div>
+    <div class="device-tooltip-detail" id="tooltipDetail"></div>
+  </div>
   <div class="container">
     <div class="title-bar">
       <div class="title">
@@ -556,6 +719,14 @@
         <span class="hotkey-badge" id="hotkeyDisplay">Alt+A</span>
       </div>
       <div class="status-buttons">
+        <button class="layout-btn" id="layoutBtn" title="Toggle layout">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="layoutIcon">
+            <!-- horizontal icon (shown when currently vertical) -->
+            <rect x="2" y="8" width="6" height="8" rx="1"/>
+            <rect x="9" y="8" width="6" height="8" rx="1"/>
+            <rect x="16" y="8" width="6" height="8" rx="1"/>
+          </svg>
+        </button>
         <button class="settings-btn" id="settingsBtn" title="Select devices">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96a7.09 7.09 0 00-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 00-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/>
@@ -584,11 +755,18 @@
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsDoneBtn = document.getElementById('settingsDoneBtn');
     const alwaysOnTopToggle = document.getElementById('alwaysOnTopToggle');
+    const layoutBtn = document.getElementById('layoutBtn');
+    const layoutIcon = document.getElementById('layoutIcon');
+    const container = document.querySelector('.container');
+    const deviceTooltip = document.getElementById('deviceTooltip');
+    const tooltipName = document.getElementById('tooltipName');
+    const tooltipDetail = document.getElementById('tooltipDetail');
 
     let devices = [];
     let allDevices = []; // All devices including disabled ones
     let enabledDevices = null; // null = all enabled, array = specific IDs
     let alwaysOnTop = true;
+    let currentLayout = 'vertical'; // 'vertical' or 'horizontal'
     
     // Load devices
     async function loadDevices() {
@@ -686,11 +864,13 @@
       
       deviceList.innerHTML = devices.map((device, index) => {
         const parsed = parseDeviceName(device.name);
+        const icon = getDeviceIcon(device.name);
         return `
         <div class="device-item ${device.isDefault ? 'active' : ''}"
              data-id="${device.id}"
              data-index="${index}">
           <div class="device-indicator"></div>
+          <svg class="device-icon-svg" viewBox="0 0 24 24">${icon}</svg>
           <div class="device-info">
             <div class="device-name">${escapeHtml(parsed.type)}</div>
             <div class="device-type">${escapeHtml(parsed.hardware) || 'Playback Device'}</div>
@@ -699,9 +879,30 @@
       `;
       }).join('');
       
-      // Add click handlers
-      document.querySelectorAll('.device-item').forEach(item => {
+      // Add click handlers and tooltip hover
+      document.querySelectorAll('.device-item').forEach((item, i) => {
         item.addEventListener('click', () => switchDevice(item.dataset.id, item.dataset.index));
+
+        item.addEventListener('mouseenter', () => {
+          if (currentLayout !== 'horizontal') return;
+          const parsed = parseDeviceName(devices[i].name);
+          tooltipName.textContent = parsed.type;
+          tooltipDetail.textContent = parsed.hardware || 'Playback Device';
+
+          const rect = item.getBoundingClientRect();
+          deviceTooltip.style.display = 'block';
+          // Position below the item, centered
+          const tipRect = deviceTooltip.getBoundingClientRect();
+          let left = rect.left + rect.width / 2 - tipRect.width / 2;
+          // Clamp to viewport
+          left = Math.max(4, Math.min(left, window.innerWidth - tipRect.width - 4));
+          deviceTooltip.style.left = left + 'px';
+          deviceTooltip.style.top = (rect.bottom + 8) + 'px';
+        });
+
+        item.addEventListener('mouseleave', () => {
+          deviceTooltip.style.display = 'none';
+        });
       });
 
       // Resize window to fit devices
@@ -709,18 +910,95 @@
     }
 
     function resizeWindowToFit(deviceCount) {
-      // Height calculation:
-      // Title bar: ~45px, Status bar: ~38px, Device list padding: 16px
-      // Each device item: ~54px
-      const baseHeight = 99;
-      const itemHeight = 54;
-      const minHeight = 150;
-      const maxHeight = 600;
+      if (currentLayout === 'horizontal') {
+        // Horizontal layout: icon-only, compact + tooltip space below
+        const baseWidth = 80; // title icon + window controls + status buttons
+        const itemWidth = 48; // per icon button
+        const height = 140; // extra space for tooltip below
+        const minWidth = 160;
+        const maxWidth = 600;
 
-      let height = baseHeight + (deviceCount * itemHeight);
-      height = Math.max(minHeight, Math.min(maxHeight, height));
+        let width = baseWidth + (deviceCount * itemWidth);
+        width = Math.max(minWidth, Math.min(maxWidth, width));
 
-      ipcRenderer.send('resize-window', height);
+        ipcRenderer.send('resize-window', width, height);
+      } else {
+        // Vertical layout (original)
+        // Title bar: ~45px, Status bar: ~38px, Device list padding: 16px
+        // Each device item: ~54px
+        const width = 280;
+        const baseHeight = 99;
+        const itemHeight = 54;
+        const minHeight = 150;
+        const maxHeight = 600;
+
+        let height = baseHeight + (deviceCount * itemHeight);
+        height = Math.max(minHeight, Math.min(maxHeight, height));
+
+        ipcRenderer.send('resize-window', width, height);
+      }
+    }
+
+    function updateLayoutIcon() {
+      if (currentLayout === 'vertical') {
+        // Show horizontal icon (switch to horizontal)
+        layoutIcon.innerHTML = `
+          <rect x="2" y="8" width="6" height="8" rx="1"/>
+          <rect x="9" y="8" width="6" height="8" rx="1"/>
+          <rect x="16" y="8" width="6" height="8" rx="1"/>
+        `;
+        layoutBtn.title = 'Switch to horizontal layout';
+      } else {
+        // Show vertical icon (switch to vertical)
+        layoutIcon.innerHTML = `
+          <rect x="4" y="2" width="16" height="5" rx="1"/>
+          <rect x="4" y="9" width="16" height="5" rx="1"/>
+          <rect x="4" y="16" width="16" height="5" rx="1"/>
+        `;
+        layoutBtn.title = 'Switch to vertical layout';
+      }
+    }
+
+    async function toggleLayout() {
+      currentLayout = currentLayout === 'vertical' ? 'horizontal' : 'vertical';
+      await ipcRenderer.invoke('set-layout', currentLayout);
+      applyLayout();
+    }
+
+    function applyLayout() {
+      if (currentLayout === 'horizontal') {
+        container.classList.add('horizontal');
+      } else {
+        container.classList.remove('horizontal');
+      }
+      updateLayoutIcon();
+      resizeWindowToFit(devices.length);
+    }
+
+    function getDeviceIcon(name) {
+      const lower = name.toLowerCase();
+      if (/headset/i.test(lower)) {
+        // Headset: headphones + bold L-shaped mic arm from left ear cup
+        return '<path d="M4 11C4 5.48 7.58 2 12 2s8 3.48 8 9h-2c0-3.31-2.69-6-6-6s-6 2.69-6 6H4z"/><rect x="1" y="11" width="5" height="9" rx="2"/><rect x="18" y="11" width="5" height="9" rx="2"/><path d="M3 18v3c0 1.66 1.34 3 3 3h5v-2H6c-.55 0-1-.45-1-1v-3H3z"/>';
+      }
+      if (/headphone|kopfh/i.test(lower)) {
+        // Headphones: band + two prominent ear cups, no mic
+        return '<path d="M4 11C4 5.48 7.58 2 12 2s8 3.48 8 9h-2c0-3.31-2.69-6-6-6s-6 2.69-6 6H4z"/><rect x="1" y="11" width="5" height="9" rx="2"/><rect x="18" y="11" width="5" height="9" rx="2"/>';
+      }
+      if (/hdmi|display|monitor|tv|tele/i.test(lower)) {
+        // Display / HDMI
+        return '<path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/>';
+      }
+      if (/digital|spdif|optical|toslink/i.test(lower)) {
+        // Digital output
+        return '<circle cx="12" cy="12" r="3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>';
+      }
+      if (/bluetooth|bt /i.test(lower)) {
+        // Bluetooth
+        return '<path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>';
+      }
+      // Default: Speaker
+      return '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
     }
 
     function parseDeviceName(name) {
@@ -792,6 +1070,9 @@
       alwaysOnTop = settings.alwaysOnTop;
       updateAlwaysOnTopToggle();
 
+      // Settings always uses vertical layout
+      container.classList.remove('horizontal');
+
       deviceList.classList.add('hidden');
       settingsView.classList.add('active');
       renderSettings();
@@ -814,6 +1095,8 @@
     function closeSettings() {
       settingsView.classList.remove('active');
       deviceList.classList.remove('hidden');
+      // Restore layout
+      applyLayout();
       loadDevices();
     }
 
@@ -841,8 +1124,11 @@
         item.addEventListener('click', () => toggleDevice(item.dataset.id));
       });
 
-      // Resize for settings view (add extra for options section)
-      resizeWindowToFit(allDevices.length + 2); // +2 for header and options
+      // Resize for settings view (always vertical layout)
+      const settingsBaseHeight = 99;
+      const settingsItemHeight = 54;
+      const settingsHeight = Math.max(150, Math.min(600, settingsBaseHeight + ((allDevices.length + 2) * settingsItemHeight)));
+      ipcRenderer.send('resize-window', 280, settingsHeight);
     }
 
     async function toggleDevice(deviceId) {
@@ -884,10 +1170,16 @@
     settingsBtn.addEventListener('click', openSettings);
     settingsDoneBtn.addEventListener('click', closeSettings);
     alwaysOnTopToggle.addEventListener('click', toggleAlwaysOnTop);
+    layoutBtn.addEventListener('click', toggleLayout);
 
     // Initialize
-    loadDevices();
-    loadSettings();
+    async function init() {
+      currentLayout = await ipcRenderer.invoke('get-layout') || 'vertical';
+      applyLayout();
+      loadDevices();
+      loadSettings();
+    }
+    init();
 
     // Auto-refresh when window becomes visible
     document.addEventListener('visibilitychange', () => {

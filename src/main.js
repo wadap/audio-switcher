@@ -11,7 +11,8 @@ const store = new Store({
     windowPosition: null,
     autoLaunch: false,
     enabledDevices: null, // null = all devices enabled, array = specific device IDs
-    knownDevices: [] // all device IDs ever seen, used to detect truly new devices
+    knownDevices: [], // all device IDs ever seen, used to detect truly new devices
+    layout: 'vertical' // 'vertical' or 'horizontal'
   }
 });
 
@@ -34,10 +35,12 @@ function setAutoLaunch(enable) {
 
 function createWindow() {
   const savedPosition = store.get('windowPosition');
+  const layout = store.get('layout');
+  const isHorizontal = layout === 'horizontal';
   
   mainWindow = new BrowserWindow({
-    width: 280,
-    height: 400,
+    width: isHorizontal ? 300 : 280,
+    height: isHorizontal ? 140 : 400,
     x: savedPosition?.x,
     y: savedPosition?.y,
     frame: false,
@@ -274,9 +277,17 @@ ipcMain.handle('set-known-devices', (event, deviceIds) => {
   return true;
 });
 
-ipcMain.on('resize-window', (event, height) => {
-  const [width] = mainWindow.getSize();
+ipcMain.on('resize-window', (event, width, height) => {
   mainWindow.setSize(width, height);
+});
+
+ipcMain.handle('get-layout', () => {
+  return store.get('layout');
+});
+
+ipcMain.handle('set-layout', (event, layout) => {
+  store.set('layout', layout);
+  return true;
 });
 
 // 排他制御: 2つ目のインスタンスが起動されたら既存ウィンドウをフォーカス
