@@ -279,29 +279,43 @@ ipcMain.on('resize-window', (event, height) => {
   mainWindow.setSize(width, height);
 });
 
-// App lifecycle
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-  registerHotkey();
-});
+// 排他制御: 2つ目のインスタンスが起動されたら既存ウィンドウをフォーカス
+const gotTheLock = app.requestSingleInstanceLock();
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  // App lifecycle
+  app.whenReady().then(() => {
     createWindow();
-  }
-});
+    createTray();
+    registerHotkey();
+  });
 
-app.on('before-quit', () => {
-  isQuitting = true;
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
 
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-});
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+
+  app.on('before-quit', () => {
+    isQuitting = true;
+  });
+
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+  });
+}
