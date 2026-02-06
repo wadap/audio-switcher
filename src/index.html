@@ -512,17 +512,22 @@
       padding: 12px 12px 8px;
     }
 
-    /* Device Icon (used in horizontal layout) */
+    /* Device Icon */
     .device-icon-svg {
-      display: none;
-      width: 22px;
-      height: 22px;
-      fill: var(--text-secondary);
+      display: block;
+      width: 20px;
+      height: 20px;
+      fill: var(--text-muted);
       flex-shrink: 0;
     }
 
     .device-item.active .device-icon-svg {
       fill: var(--accent);
+    }
+
+    /* Hide indicator dot when icon is shown */
+    .device-indicator {
+      display: none;
     }
 
     /* Custom Tooltip (fixed position, managed by JS) */
@@ -615,12 +620,9 @@
       position: relative;
     }
 
-    .container.horizontal .device-indicator {
-      display: none;
-    }
-
     .container.horizontal .device-icon-svg {
-      display: block;
+      width: 22px;
+      height: 22px;
     }
 
     .container.horizontal .device-info {
