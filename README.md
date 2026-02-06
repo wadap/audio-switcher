@@ -3,22 +3,29 @@
 Minimal audio output switcher for Windows. teenage engineering inspired design.
 
 ```
-┌──────────────────────────┐
-│  🔊 AUDIO OUT            │
-├──────────────────────────┤
-│  ● Headphones            │  ← Active
-│  ○ Speakers              │
-│  ○ USB DAC               │
-└──────────────────────────┘
+ Vertical                     Horizontal
+┌──────────────────────┐     ┌──────────────────────┐
+│  🔊 AUDIO OUT        │     │ 🔊  [🎧][🎧][🖥][🔊] │
+├──────────────────────┤     └──────────────────────┘
+│  🎧 Headphones       │ ←
+│  🎧 Headset          │
+│  🖥 HDMI Monitor     │
+│  🔊 Speakers         │
+└──────────────────────┘
 ```
 
 ## Features
 
 - 1-click audio output switching
+- **Vertical / Horizontal layout** switchable (icon-only compact mode)
+- Device type icons (speaker, headphones, headset, HDMI, digital, bluetooth)
+- Hover tooltips in horizontal mode
+- Device filtering (show/hide specific devices)
 - Always on top (optional)
 - System tray integration
 - Global hotkey (Alt+A by default)
 - Auto-start with Windows
+- Single instance (second launch focuses existing window)
 - Frameless, draggable window
 - Minimal, dark UI
 
@@ -51,7 +58,7 @@ npm install
 npm start
 ```
 
-## Build Executable
+## Build
 
 ```bash
 # Build portable .exe (no installation required)
@@ -63,11 +70,24 @@ npm run build:installer
 
 The output will be in the `dist` folder.
 
+### Releases
+
+Pushing a version tag triggers an automated build and GitHub Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The portable `.exe` and installer are attached to the release for download.
+
 ## Usage
 
 - **Click** on a device to switch audio output
 - **Drag** the title bar to move the window
 - **Alt+A** to show/hide the window
+- **Layout button** to switch between vertical and horizontal mode
+- **Settings button** to show/hide specific devices
 - **Right-click** the tray icon for options:
   - Always on Top
   - Start with Windows
@@ -105,8 +125,8 @@ Edit `src/index.html` to change:
 - Colors (CSS variables at the top)
 - Fonts
 - Layout
+- Device icon mappings (`getDeviceIcon` function)
 
 ## License
 
 MIT
-# audio-switcher
