@@ -839,7 +839,7 @@
           <button class="error-action" onclick="loadDevices()">Retry</button>
         </div>
       `;
-      resizeWindowToFit(2); // Compact size for error state
+      resizeWindowToFit(); // Compact size for error state
     }
     
     function renderDevices() {
@@ -860,7 +860,7 @@
             <div>No audio devices found</div>
           </div>
         `;
-        resizeWindowToFit(2); // Compact size for empty state
+        resizeWindowToFit(); // Compact size for empty state
         return;
       }
       
@@ -908,18 +908,20 @@
       });
 
       // Resize window to fit devices
-      resizeWindowToFit(devices.length);
+      resizeWindowToFit();
     }
 
-    function resizeWindowToFit(deviceCount) {
-      if (currentLayout === 'horizontal') {
-        // Horizontal layout: measure actual DOM for precise fit
-        requestAnimationFrame(() => {
-          const deviceListEl = document.getElementById('deviceList');
-          const titleBar = document.querySelector('.title-bar');
-          const statusBar = document.getElementById('statusBar');
-          const borderSize = 2; // container 1px border on each side
+    function resizeWindowToFit() {
+      requestAnimationFrame(() => {
+        const deviceListEl = document.getElementById('deviceList');
+        const titleBar = document.querySelector('.title-bar');
+        const statusBar = document.getElementById('statusBar');
+        const borderSize = 2; // container 1px border on each side
 
+        // Height: sum of child element heights (respects CSS max-height)
+        const height = titleBar.offsetHeight + deviceListEl.offsetHeight + statusBar.offsetHeight + borderSize;
+
+        if (currentLayout === 'horizontal') {
           // Width: sum of actual device item widths
           const items = deviceListEl.querySelectorAll('.device-item');
           let neededWidth;
@@ -936,26 +938,12 @@
           }
           const width = Math.max(neededWidth, 100);
 
-          // Height: sum of child element heights
-          const height = titleBar.offsetHeight + deviceListEl.offsetHeight + statusBar.offsetHeight + borderSize;
-
           ipcRenderer.send('resize-window', Math.ceil(width), Math.ceil(height));
-        });
-      } else {
-        // Vertical layout (original)
-        // Title bar: ~45px, Status bar: ~38px, Device list padding: 16px
-        // Each device item: ~54px
-        const width = 280;
-        const baseHeight = 99;
-        const itemHeight = 54;
-        const minHeight = 150;
-        const maxHeight = 600;
-
-        let height = baseHeight + (deviceCount * itemHeight);
-        height = Math.max(minHeight, Math.min(maxHeight, height));
-
-        ipcRenderer.send('resize-window', width, height);
-      }
+        } else {
+          const minHeight = 150;
+          ipcRenderer.send('resize-window', 280, Math.max(minHeight, Math.ceil(height)));
+        }
+      });
     }
 
     function updateLayoutIcon() {
@@ -991,7 +979,7 @@
         container.classList.remove('horizontal');
       }
       updateLayoutIcon();
-      resizeWindowToFit(devices.length);
+      resizeWindowToFit();
     }
 
     function getDeviceIcon(name) {
@@ -1142,11 +1130,16 @@
         item.addEventListener('click', () => toggleDevice(item.dataset.id));
       });
 
-      // Resize for settings view (always vertical layout)
-      const settingsBaseHeight = 99;
-      const settingsItemHeight = 54;
-      const settingsHeight = Math.max(150, Math.min(600, settingsBaseHeight + ((allDevices.length + 2) * settingsItemHeight)));
-      ipcRenderer.send('resize-window', 280, settingsHeight);
+      // Resize for settings view: measure actual DOM (respects CSS max-height)
+      requestAnimationFrame(() => {
+        const settingsViewEl = document.getElementById('settingsView');
+        const titleBar = document.querySelector('.title-bar');
+        const statusBar = document.getElementById('statusBar');
+        const borderSize = 2; // container 1px border on each side
+        const minHeight = 150;
+        const height = titleBar.offsetHeight + settingsViewEl.offsetHeight + statusBar.offsetHeight + borderSize;
+        ipcRenderer.send('resize-window', 280, Math.max(minHeight, Math.ceil(height)));
+      });
     }
 
     async function toggleDevice(deviceId) {
