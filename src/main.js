@@ -137,22 +137,13 @@ function createTray() {
 }
 
 function createTrayIcon() {
-  // システムテーマに応じたアイコンを生成
+  // システムテーマに応じたアイコンを読み込み（PNG アセット）
   // ダークモード（タスクバーが暗い）→ 白いアイコン
   // ライトモード（タスクバーが明るい）→ 黒いアイコン
   const isDark = nativeTheme.shouldUseDarkColors;
-  const iconColor = isDark ? '#ffffff' : '#000000';
-
-  const size = 16;
-  const svg = `
-    <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 5 L5 5 L8 2 L8 14 L5 11 L3 11 Z" fill="${iconColor}"/>
-      <path d="M10 4.5 Q12.5 8 10 11.5" stroke="${iconColor}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      <path d="M12 2.5 Q16 8 12 13.5" stroke="${iconColor}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    </svg>
-  `;
-
-  return nativeImage.createFromBuffer(Buffer.from(svg), { width: size, height: size });
+  const filename = isDark ? 'tray-icon-dark.png' : 'tray-icon-light.png';
+  const iconPath = path.join(app.getAppPath(), 'assets', filename);
+  return nativeImage.createFromPath(iconPath);
 }
 
 function registerHotkey() {

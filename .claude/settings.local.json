@@ -3,7 +3,8 @@
     "allow": [
       "Bash(powershell.exe:*)",
       "Bash(cmd.exe /c \"chcp 65001 >nul && powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"\"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $ErrorActionPreference = ''Stop''; try { Import-Module ''C:\\\\Program Files\\\\WindowsPowerShell\\\\Modules\\\\AudioDeviceCmdlets\\\\3.1.0.2\\\\AudioDeviceCmdlets.dll'' -ErrorAction Stop; $devices = Get-AudioDevice -List | Where-Object { $_Type -eq ''Playback'' }; $default = Get-AudioDevice -Playback; $result = @{ devices = @\\($devices | ForEach-Object { @{ id = $_ID; name = $_Name; isDefault = \\($_ID -eq $default.ID\\) } }\\) }; ConvertTo-Json $result -Compress -Depth 5 } catch { Write-Output \\(''{\\\\\"\"devices\\\\\"\":[],\\\\\"\"error\\\\\"\":\\\\\"\"'' + $_Exception.Message.Replace\\(''\\\\\"\"'', \\\\\"\"''\\\\\"\"  \\).Replace\\(''\\\\\\\\'', ''/''\\) + ''\\\\\"\"}''  \\) }\"\"\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
