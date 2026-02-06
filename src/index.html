@@ -102,7 +102,6 @@
     /* Device List */
     .device-list {
       padding: 8px;
-      max-height: 280px;
       overflow-y: auto;
     }
     
@@ -359,7 +358,6 @@
 
     .settings-list {
       padding: 8px;
-      max-height: 280px;
       overflow-y: auto;
     }
 
@@ -839,7 +837,7 @@
           <button class="error-action" onclick="loadDevices()">Retry</button>
         </div>
       `;
-      resizeWindowToFit(2); // Compact size for error state
+      resizeWindowToFit();
     }
     
     function renderDevices() {
@@ -860,7 +858,7 @@
             <div>No audio devices found</div>
           </div>
         `;
-        resizeWindowToFit(2); // Compact size for empty state
+        resizeWindowToFit();
         return;
       }
       
@@ -908,37 +906,59 @@
       });
 
       // Resize window to fit devices
-      resizeWindowToFit(devices.length);
+      resizeWindowToFit();
     }
 
-    function resizeWindowToFit(deviceCount) {
-      if (currentLayout === 'horizontal') {
-        // Horizontal layout: icon-only, compact + tooltip space below
-        const baseWidth = 80; // title icon + window controls + status buttons
-        const itemWidth = 48; // per icon button
-        const height = 140; // extra space for tooltip below
-        const minWidth = 160;
-        const maxWidth = 600;
+    function resizeWindowToFit() {
+      requestAnimationFrame(() => {
+        const deviceListEl = document.getElementById('deviceList');
+        const titleBar = document.querySelector('.title-bar');
+        const statusBar = document.getElementById('statusBar');
+        const borderSize = 2; // container 1px border on each side
+        const maxScreenHeight = Math.min(800, Math.floor(window.screen.availHeight * 0.85));
 
-        let width = baseWidth + (deviceCount * itemWidth);
-        width = Math.max(minWidth, Math.min(maxWidth, width));
+        if (currentLayout === 'horizontal') {
+          // Width: measure device items for precise fit
+          const items = deviceListEl.querySelectorAll('.device-item');
+          let neededWidth;
 
-        ipcRenderer.send('resize-window', width, height);
-      } else {
-        // Vertical layout (original)
-        // Title bar: ~45px, Status bar: ~38px, Device list padding: 16px
-        // Each device item: ~54px
-        const width = 280;
-        const baseHeight = 99;
-        const itemHeight = 54;
-        const minHeight = 150;
-        const maxHeight = 600;
+          if (items.length > 0) {
+            let listWidth = 8; // device-list padding (4px * 2)
+            items.forEach((item, i) => {
+              listWidth += item.offsetWidth;
+              if (i < items.length - 1) listWidth += 2; // gap
+            });
+            neededWidth = listWidth + borderSize;
+          } else {
+            neededWidth = 200; // fallback for loading/error/empty
+          }
 
-        let height = baseHeight + (deviceCount * itemHeight);
-        height = Math.max(minHeight, Math.min(maxHeight, height));
+          // Minimum width for status bar buttons
+          const width = Math.max(neededWidth, 100);
 
-        ipcRenderer.send('resize-window', width, height);
-      }
+          // Height: sum of child elements
+          const height = titleBar.offsetHeight + deviceListEl.offsetHeight + statusBar.offsetHeight + borderSize;
+
+          ipcRenderer.send('resize-window', Math.ceil(width), Math.ceil(height));
+        } else {
+          // Vertical: fixed width, height from child element sum
+          const width = 280;
+          const titleHeight = titleBar.offsetHeight;
+          const listHeight = deviceListEl.scrollHeight;
+          const statusHeight = statusBar.offsetHeight;
+          const idealHeight = titleHeight + listHeight + statusHeight + borderSize;
+
+          if (idealHeight > maxScreenHeight) {
+            // Cap at screen height, enable scrolling on device list
+            const nonListHeight = titleHeight + statusHeight + borderSize;
+            deviceListEl.style.maxHeight = (maxScreenHeight - nonListHeight) + 'px';
+            ipcRenderer.send('resize-window', width, maxScreenHeight);
+          } else {
+            deviceListEl.style.maxHeight = '';
+            ipcRenderer.send('resize-window', width, Math.max(Math.ceil(idealHeight), 150));
+          }
+        }
+      });
     }
 
     function updateLayoutIcon() {
@@ -968,13 +988,15 @@
     }
 
     function applyLayout() {
+      // Clear dynamic max-height from previous layout
+      document.getElementById('deviceList').style.maxHeight = '';
       if (currentLayout === 'horizontal') {
         container.classList.add('horizontal');
       } else {
         container.classList.remove('horizontal');
       }
       updateLayoutIcon();
-      resizeWindowToFit(devices.length);
+      resizeWindowToFit();
     }
 
     function getDeviceIcon(name) {
@@ -1096,6 +1118,7 @@
     function closeSettings() {
       settingsView.classList.remove('active');
       deviceList.classList.remove('hidden');
+      document.getElementById('settingsList').style.maxHeight = '';
       // Restore layout
       applyLayout();
       loadDevices();
@@ -1126,10 +1149,28 @@
       });
 
       // Resize for settings view (always vertical layout)
-      const settingsBaseHeight = 99;
-      const settingsItemHeight = 54;
-      const settingsHeight = Math.max(150, Math.min(600, settingsBaseHeight + ((allDevices.length + 2) * settingsItemHeight)));
-      ipcRenderer.send('resize-window', 280, settingsHeight);
+      requestAnimationFrame(() => {
+        const titleBar = document.querySelector('.title-bar');
+        const statusBar = document.getElementById('statusBar');
+        const settingsViewEl = document.getElementById('settingsView');
+        const settingsListEl = document.getElementById('settingsList');
+        const borderSize = 2;
+        const maxScreenHeight = Math.min(800, Math.floor(window.screen.availHeight * 0.85));
+
+        const titleHeight = titleBar.offsetHeight;
+        const settingsHeight = settingsViewEl.scrollHeight;
+        const statusHeight = statusBar.offsetHeight;
+        const idealHeight = titleHeight + settingsHeight + statusHeight + borderSize;
+
+        if (idealHeight > maxScreenHeight) {
+          const nonListHeight = idealHeight - settingsListEl.scrollHeight;
+          settingsListEl.style.maxHeight = (maxScreenHeight - nonListHeight) + 'px';
+          ipcRenderer.send('resize-window', 280, maxScreenHeight);
+        } else {
+          settingsListEl.style.maxHeight = '';
+          ipcRenderer.send('resize-window', 280, Math.max(Math.ceil(idealHeight), 150));
+        }
+      });
     }
 
     async function toggleDevice(deviceId) {
