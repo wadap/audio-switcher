@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: transparent;
+      overflow: hidden;
+    }
+    .tooltip {
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 6px 10px;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #2a2a2a;
+    }
+    .name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .detail {
+      font-size: 9px;
+      color: #555555;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tooltip">
+    <div class="name" id="name"></div>
+    <div class="detail" id="detail"></div>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.on('set-tooltip-content', (event, data) => {
+      document.getElementById('name').textContent = data.name;
+      document.getElementById('detail').textContent = data.detail;
+    });
+  </script>
+</body>
+</html>

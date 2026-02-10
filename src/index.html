@@ -721,6 +721,11 @@
         <span class="hotkey-badge" id="hotkeyDisplay">Alt+A</span>
       </div>
       <div class="status-buttons">
+        <button class="layout-btn" id="miniBarBtn" title="Switch to mini bar">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="10" width="18" height="4" rx="2"/>
+          </svg>
+        </button>
         <button class="layout-btn" id="layoutBtn" title="Toggle layout">
           <svg viewBox="0 0 24 24" fill="currentColor" id="layoutIcon">
             <!-- horizontal icon (shown when currently vertical) -->
@@ -1182,6 +1187,9 @@
     settingsDoneBtn.addEventListener('click', closeSettings);
     alwaysOnTopToggle.addEventListener('click', toggleAlwaysOnTop);
     layoutBtn.addEventListener('click', toggleLayout);
+    document.getElementById('miniBarBtn').addEventListener('click', () => {
+      ipcRenderer.send('switch-to-mini-bar');
+    });
 
     // Initialize
     async function init() {
@@ -1191,6 +1199,13 @@
       loadSettings();
     }
     init();
+
+    // Refresh when device is switched from tray menu or mini bar
+    ipcRenderer.on('refresh-devices', () => {
+      if (!settingsView.classList.contains('active')) {
+        loadDevices();
+      }
+    });
 
     // Auto-refresh when window becomes visible
     document.addEventListener('visibilitychange', () => {
