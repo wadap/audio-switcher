@@ -24,4 +24,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: npx electron-builder --win
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-switcher-windows
+          path: dist/*.exe
