@@ -5,8 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win portable",
-    "build:installer": "electron-builder --win nsis",
+    "build": "electron-builder --win portable --publish never",
+    "build:installer": "electron-builder --win nsis --publish never",
     "generate-tray-icons": "node scripts/generate-tray-icons.js"
   },
   "author": "Shuichi",
