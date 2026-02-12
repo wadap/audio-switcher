@@ -42,7 +42,7 @@ function fetchAudioDevices() {
       [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;
       $ErrorActionPreference = 'Stop';
       try {
-        Import-Module 'C:\\Program Files\\WindowsPowerShell\\Modules\\AudioDeviceCmdlets\\3.1.0.2\\AudioDeviceCmdlets.dll' -ErrorAction Stop;
+        Import-Module AudioDeviceCmdlets -ErrorAction Stop;
         $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' };
         $default = Get-AudioDevice -Playback;
         $result = @{ devices = @($devices | ForEach-Object { @{ id = $_.ID; name = $_.Name; isDefault = ($_.ID -eq $default.ID) } }) };
@@ -77,10 +77,30 @@ function fetchAudioDevices() {
   });
 }
 
+// Ensure AudioDeviceCmdlets is installed (for dev start and portable; installer does this separately)
+// 管理者不要: -Scope CurrentUser でユーザー単位にインストール。NuGet を先に入れて対話を避ける。
+function ensureAudioDeviceCmdlets() {
+  if (process.platform !== 'win32') return Promise.resolve();
+  return new Promise((resolve) => {
+    const ps = [
+      '$ErrorActionPreference = "Stop"',
+      'if (!(Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null }',
+      'if (!(Get-Module -ListAvailable -Name AudioDeviceCmdlets)) { Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser }'
+    ].join('; ');
+    exec(`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${ps.replace(/"/g, '\\"')}"`,
+      { shell: true },
+      (error) => {
+        if (error) console.error('AudioDeviceCmdlets install check failed:', error.message);
+        resolve();
+      }
+    );
+  });
+}
+
 // Shared helper: switch audio device via PowerShell
 function switchAudioDeviceMain(deviceId) {
   return new Promise((resolve) => {
-    const psCommand = `Import-Module 'C:\\Program Files\\WindowsPowerShell\\Modules\\AudioDeviceCmdlets\\3.1.0.2\\AudioDeviceCmdlets.dll' -ErrorAction Stop; Set-AudioDevice -ID '${deviceId}'; Write-Output 'OK'`;
+    const psCommand = `Import-Module AudioDeviceCmdlets -ErrorAction Stop; Set-AudioDevice -ID '${deviceId}'; Write-Output 'OK'`;
     exec(`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psCommand}"`,
       { shell: true },
       (error) => {
@@ -443,7 +463,14 @@ function registerHotkey() {
 
 // IPC handlers
 ipcMain.handle('get-audio-devices', async () => {
-  const result = await fetchAudioDevices();
+  let result = await fetchAudioDevices();
+  if (result.error && result.error.includes('AudioDeviceCmdlets')) {
+    await Promise.race([
+      ensureAudioDeviceCmdlets(),
+      new Promise((r) => setTimeout(r, 90000))
+    ]);
+    result = await fetchAudioDevices();
+  }
   if (!result.error) {
     cachedDevices = result.devices;
     cachedEnabledIds = store.get('enabledDevices');
@@ -628,6 +655,7 @@ if (!gotTheLock) {
 
   // App lifecycle
   app.whenReady().then(() => {
+    ensureAudioDeviceCmdlets(); // バックグラウンドで実行（ブロックしない）
     createWindow();
     createTray();
     registerHotkey();

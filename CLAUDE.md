@@ -31,7 +31,7 @@ git push origin v1.0.0
 
 ## Prerequisites
 
-The app requires the AudioDeviceCmdlets PowerShell module to be installed:
+The app requires the AudioDeviceCmdlets PowerShell module. The **NSIS installer** (from `npm run build:installer`) runs `Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser` during setup if the module is not installed. To install manually:
 ```powershell
 Install-Module -Name AudioDeviceCmdlets -Force
 ```
