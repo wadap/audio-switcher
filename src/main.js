@@ -3,6 +3,8 @@ const path = require('path');
 const { exec } = require('child_process');
 const Store = require('electron-store');
 
+const cmdPath = process.env.comspec || process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe';
+
 const store = new Store({
   defaults: {
     alwaysOnTop: true,
@@ -53,7 +55,7 @@ function fetchAudioDevices() {
     `.replace(/\n/g, ' ').trim();
 
     exec(`chcp 65001 >nul && powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psCommand.replace(/"/g, '\\"')}"`,
-      { encoding: 'utf8', shell: 'cmd.exe' },
+      { encoding: 'utf8', shell: cmdPath },
       (error, stdout, stderr) => {
         if (error) {
           console.error('Error getting devices:', error);
@@ -88,7 +90,7 @@ function ensureAudioDeviceCmdlets() {
       'if (!(Get-Module -ListAvailable -Name AudioDeviceCmdlets)) { Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser }'
     ].join('; ');
     exec(`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${ps.replace(/"/g, '\\"')}"`,
-      { shell: true },
+      { shell: cmdPath },
       (error) => {
         if (error) console.error('AudioDeviceCmdlets install check failed:', error.message);
         resolve();
@@ -102,7 +104,7 @@ function switchAudioDeviceMain(deviceId) {
   return new Promise((resolve) => {
     const psCommand = `Import-Module AudioDeviceCmdlets -ErrorAction Stop; Set-AudioDevice -ID '${deviceId}'; Write-Output 'OK'`;
     exec(`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "${psCommand}"`,
-      { shell: true },
+      { shell: cmdPath },
       (error) => {
         resolve({ success: !error });
       }
@@ -116,9 +118,9 @@ function setAutoLaunch(enable) {
   const AutoLaunch = require('child_process');
   
   if (enable) {
-    exec(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "AudioSwitcher" /t REG_SZ /d "${appPath}" /f`);
+    exec(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "AudioSwitcher" /t REG_SZ /d "${appPath}" /f`, { shell: cmdPath });
   } else {
-    exec(`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "AudioSwitcher" /f`);
+    exec(`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "AudioSwitcher" /f`, { shell: cmdPath });
   }
   store.set('autoLaunch', enable);
 }
