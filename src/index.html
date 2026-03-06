@@ -530,42 +530,6 @@
       display: none;
     }
 
-    /* Custom Tooltip (fixed position, managed by JS) */
-    .device-tooltip {
-      display: none;
-      position: fixed;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px 12px;
-      white-space: nowrap;
-      z-index: 10000;
-      pointer-events: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    }
-
-    .device-tooltip::before {
-      content: '';
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 5px solid transparent;
-      border-bottom-color: var(--border);
-    }
-
-    .device-tooltip-name {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .device-tooltip-detail {
-      font-size: 9px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
     /* ===== Horizontal Layout ===== */
     .container.horizontal .title-bar {
       padding: 6px 10px;
@@ -675,10 +639,6 @@
   </style>
 </head>
 <body>
-  <div class="device-tooltip" id="deviceTooltip">
-    <div class="device-tooltip-name" id="tooltipName"></div>
-    <div class="device-tooltip-detail" id="tooltipDetail"></div>
-  </div>
   <div class="container">
     <div class="title-bar">
       <div class="title">
@@ -765,9 +725,6 @@
     const layoutBtn = document.getElementById('layoutBtn');
     const layoutIcon = document.getElementById('layoutIcon');
     const container = document.querySelector('.container');
-    const deviceTooltip = document.getElementById('deviceTooltip');
-    const tooltipName = document.getElementById('tooltipName');
-    const tooltipDetail = document.getElementById('tooltipDetail');
 
     let devices = [];
     let allDevices = []; // All devices including disabled ones
@@ -893,22 +850,17 @@
         item.addEventListener('mouseenter', () => {
           if (currentLayout !== 'horizontal') return;
           const parsed = parseDeviceName(devices[i].name);
-          tooltipName.textContent = parsed.type;
-          tooltipDetail.textContent = parsed.hardware || 'Playback Device';
-
           const rect = item.getBoundingClientRect();
-          deviceTooltip.style.display = 'block';
-          // Position below the item, centered
-          const tipRect = deviceTooltip.getBoundingClientRect();
-          let left = rect.left + rect.width / 2 - tipRect.width / 2;
-          // Clamp to viewport
-          left = Math.max(4, Math.min(left, window.innerWidth - tipRect.width - 4));
-          deviceTooltip.style.left = left + 'px';
-          deviceTooltip.style.top = (rect.bottom + 8) + 'px';
+          ipcRenderer.send('show-tooltip', {
+            name: parsed.type,
+            detail: parsed.hardware || 'Playback Device',
+            elementRect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+            position: 'bottom'
+          });
         });
 
         item.addEventListener('mouseleave', () => {
-          deviceTooltip.style.display = 'none';
+          ipcRenderer.send('hide-tooltip');
         });
       });
 

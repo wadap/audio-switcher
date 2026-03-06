@@ -578,11 +578,12 @@ ipcMain.on('mini-bar-context-menu', () => {
   menu.popup({ window: miniBarWindow });
 });
 
-// Tooltip window for mini bar
-ipcMain.on('mini-bar-tooltip-show', (event, data) => {
-  if (!miniBarWindow || miniBarWindow.isDestroyed()) return;
+// Tooltip window for mini bar and main window
+ipcMain.on('show-tooltip', (event, data) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!browserWindow || browserWindow.isDestroyed()) return;
 
-  const barBounds = miniBarWindow.getBounds();
+  const barBounds = browserWindow.getBounds();
   // Calculate screen-space position of the hovered element
   const screenX = barBounds.x + data.elementRect.x;
   const screenY = barBounds.y + data.elementRect.y;
@@ -611,16 +612,28 @@ ipcMain.on('mini-bar-tooltip-show', (event, data) => {
     tooltipWindow.setIgnoreMouseEvents(true);
     tooltipWindow.once('ready-to-show', () => {
       tooltipWindow.webContents.send('set-tooltip-content', data);
-      // Position above the bar, centered on element
+      
       const x = Math.round(elemCenterX - tipWidth / 2);
-      const y = Math.round(screenY - tipHeight - 8);
+      let y;
+      if (data.position === 'bottom') {
+        y = Math.round(screenY + data.elementRect.height + 8);
+      } else {
+        // Default: top
+        y = Math.round(screenY - tipHeight - 8);
+      }
+      
       tooltipWindow.setBounds({ x, y, width: tipWidth, height: tipHeight });
       tooltipWindow.showInactive();
     });
   } else {
     tooltipWindow.webContents.send('set-tooltip-content', data);
     const x = Math.round(elemCenterX - tipWidth / 2);
-    const y = Math.round(screenY - tipHeight - 8);
+    let y;
+    if (data.position === 'bottom') {
+      y = Math.round(screenY + data.elementRect.height + 8);
+    } else {
+      y = Math.round(screenY - tipHeight - 8);
+    }
     tooltipWindow.setBounds({ x, y, width: tipWidth, height: tipHeight });
     if (!tooltipWindow.isVisible()) {
       tooltipWindow.showInactive();
@@ -628,7 +641,7 @@ ipcMain.on('mini-bar-tooltip-show', (event, data) => {
   }
 });
 
-ipcMain.on('mini-bar-tooltip-hide', () => {
+ipcMain.on('hide-tooltip', () => {
   if (tooltipWindow && !tooltipWindow.isDestroyed()) {
     tooltipWindow.hide();
   }
